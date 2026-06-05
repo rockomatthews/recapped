@@ -21,3 +21,5 @@ swift run Recapped
 ```
 
 The app uses a package-first SwiftPM layout so the core logic can be tested without opening Xcode.
+
+On first run, macOS must grant screen recording permission before Recapped can capture screenshots.

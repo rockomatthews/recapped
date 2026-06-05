@@ -12,10 +12,15 @@ Recapped is split into four modules:
 V1 records only after the user starts a session. While active, the app evaluates activity samples and captures automatically when:
 
 - the foreground app changes,
+- recent keyboard or mouse activity is detected after the activity interval,
 - the fallback interval expires,
 - a manual capture is requested by the app.
 
+Common password-manager apps are excluded by default in capture rules.
+
 The default implementation writes PNG screenshots and JSON metadata into an Application Support session folder.
+
+Before a session starts, the app checks macOS screen recording permission and requests access when needed.
 
 ## AI Recap Model
 

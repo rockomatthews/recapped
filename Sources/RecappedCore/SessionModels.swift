@@ -5,6 +5,7 @@ public enum CaptureReason: String, Codable, Equatable, Sendable {
     case fallbackInterval
     case manual
     case sessionStarted
+    case userActivity
 }
 
 public struct CaptureFrame: Codable, Equatable, Identifiable, Sendable {
@@ -32,10 +33,21 @@ public struct CaptureFrame: Codable, Equatable, Identifiable, Sendable {
 public struct ActivitySample: Equatable, Sendable {
     public let sampledAt: Date
     public let foregroundAppName: String?
+    public let secondsSinceLastInput: TimeInterval?
 
-    public init(sampledAt: Date, foregroundAppName: String?) {
+    public init(
+        sampledAt: Date,
+        foregroundAppName: String?,
+        secondsSinceLastInput: TimeInterval? = nil
+    ) {
         self.sampledAt = sampledAt
         self.foregroundAppName = foregroundAppName
+        self.secondsSinceLastInput = secondsSinceLastInput
+    }
+
+    public func hasRecentInput(threshold: TimeInterval) -> Bool {
+        guard let secondsSinceLastInput else { return false }
+        return secondsSinceLastInput <= threshold
     }
 }
 

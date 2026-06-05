@@ -47,6 +47,7 @@ struct ContentView: View {
                 GridRow {
                     metric("Frames", value: "\(model.frameCount)")
                     metric("Backend", value: model.backendName)
+                    metric("Permission", value: model.permissionState)
                     metric("Recap", value: model.recapState)
                 }
             }
@@ -91,6 +92,7 @@ final class SessionViewModel: ObservableObject {
     @Published private(set) var frameCount = 0
     @Published private(set) var isRecording = false
     @Published private(set) var recapState = "Idle"
+    @Published private(set) var permissionState = ScreenRecordingPermission.isGranted() ? "Granted" : "Needed"
     @Published private(set) var statusText = "Ready to capture a work session."
     @Published private(set) var lastResult: RecapResult?
 
@@ -100,13 +102,24 @@ final class SessionViewModel: ObservableObject {
     private var decider = AutomaticCaptureDecider()
     private var timer: Timer?
     private let capturer = CoreGraphicsScreenshotCapturer()
-    private let aiProvider = LocalAIRecapProvider()
+    private let activitySampler = MacActivitySampler()
+    private let recapOrchestrator = RecapOrchestrator(provider: LocalAIRecapProvider())
     private var store: SessionImageStore?
 
     func start() async {
         guard !isRecording else { return }
 
         do {
+            if !ScreenRecordingPermission.isGranted() {
+                permissionState = "Requesting"
+                if !ScreenRecordingPermission.request() {
+                    permissionState = "Needed"
+                    statusText = "Screen recording permission is required before Recapped can capture."
+                    return
+                }
+            }
+
+            permissionState = "Granted"
             store = try SessionImageStore.defaultStore()
             state = CaptureSessionState()
             state.start(at: Date())
@@ -157,7 +170,10 @@ final class SessionViewModel: ObservableObject {
                 metadataURL: metadataURL
             )
             let outputURL = try store.recapVideoURL(sessionID: capturedSession.id)
-            let result = try await aiProvider.generateRecap(for: capturedSession, outputURL: outputURL)
+            let result = try await recapOrchestrator.renderOneMinuteRecap(
+                for: capturedSession,
+                outputURL: outputURL
+            )
             lastResult = result
             recapState = "Done"
             statusText = "Recap complete."
@@ -179,10 +195,7 @@ final class SessionViewModel: ObservableObject {
     private func captureIfNeeded(forceReason: CaptureReason?) async {
         guard let store else { return }
 
-        let sample = ActivitySample(
-            sampledAt: Date(),
-            foregroundAppName: NSWorkspace.shared.frontmostApplication?.localizedName
-        )
+        let sample = activitySampler.sample()
         let decision: CaptureDecision?
 
         if let forceReason {

@@ -52,4 +52,44 @@ struct AutomaticCaptureDeciderTests {
 
         #expect(decision?.reason == .fallbackInterval)
     }
+
+    @Test
+    func capturesRecentInputAfterActivityInterval() {
+        let start = Date(timeIntervalSince1970: 500)
+        let rules = CaptureRules(
+            minimumSecondsBetweenCaptures: 3,
+            activeInputCaptureInterval: 8,
+            fallbackCaptureInterval: 30
+        )
+        var state = CaptureSessionState(rules: rules)
+        state.start(at: start)
+        var decider = AutomaticCaptureDecider()
+        decider.markCaptured(at: start, foregroundAppName: "Xcode")
+
+        let decision = decider.evaluate(
+            sample: ActivitySample(
+                sampledAt: start.addingTimeInterval(9),
+                foregroundAppName: "Xcode",
+                secondsSinceLastInput: 0.4
+            ),
+            session: state
+        )
+
+        #expect(decision?.reason == .userActivity)
+    }
+
+    @Test
+    func skipsExcludedForegroundApps() {
+        let start = Date(timeIntervalSince1970: 600)
+        var state = CaptureSessionState()
+        state.start(at: start)
+        var decider = AutomaticCaptureDecider()
+
+        let decision = decider.evaluate(
+            sample: ActivitySample(sampledAt: start, foregroundAppName: "1Password"),
+            session: state
+        )
+
+        #expect(decision == nil)
+    }
 }

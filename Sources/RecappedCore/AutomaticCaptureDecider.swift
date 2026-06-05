@@ -32,6 +32,7 @@ public struct AutomaticCaptureDecider: Sendable {
     ) -> CaptureDecision? {
         guard session.isRecording else { return nil }
         guard session.frames.count < session.rules.maximumFramesPerSession else { return nil }
+        guard session.rules.allowsCapture(for: sample) else { return nil }
 
         if lastCaptureAt == nil {
             return CaptureDecision(reason: .sessionStarted, sampledAt: sample.sampledAt)
@@ -48,6 +49,11 @@ public struct AutomaticCaptureDecider: Sendable {
 
         if sample.foregroundAppName != lastForegroundAppName {
             return CaptureDecision(reason: .appChanged, sampledAt: sample.sampledAt)
+        }
+
+        if sample.hasRecentInput(threshold: session.rules.activeInputThreshold),
+           secondsSinceCapture >= session.rules.activeInputCaptureInterval {
+            return CaptureDecision(reason: .userActivity, sampledAt: sample.sampledAt)
         }
 
         if secondsSinceCapture >= session.rules.fallbackCaptureInterval {
