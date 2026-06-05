@@ -77,7 +77,11 @@ public final class SlideshowVideoRenderer: @unchecked Sendable {
                 frames.count - 1,
                 Int((Double(second) / Double(seconds)) * Double(frames.count))
             )
-            let pixelBuffer = try makePixelBuffer(from: frames[frameIndex].fileURL)
+            let frame = frames[frameIndex]
+            let pixelBuffer = try makePixelBuffer(
+                from: frame.fileURL,
+                caption: caption(for: frame)
+            )
             let presentationTime = CMTime(value: CMTimeValue(second), timescale: 1)
 
             guard adaptor.append(pixelBuffer, withPresentationTime: presentationTime) else {
@@ -99,7 +103,7 @@ public final class SlideshowVideoRenderer: @unchecked Sendable {
         }
     }
 
-    private func makePixelBuffer(from imageURL: URL) throws -> CVPixelBuffer {
+    private func makePixelBuffer(from imageURL: URL, caption: String) throws -> CVPixelBuffer {
         guard
             let source = CGImageSourceCreateWithURL(imageURL as CFURL, nil),
             let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
@@ -141,8 +145,58 @@ public final class SlideshowVideoRenderer: @unchecked Sendable {
         context.fill(canvas)
         context.interpolationQuality = .high
         context.draw(image, in: fittedRect(for: image, in: canvas))
+        drawCaption(caption, in: context, canvas: canvas)
 
         return pixelBuffer
+    }
+
+    private func caption(for frame: CaptureFrame) -> String {
+        let appName = frame.foregroundAppName ?? "Desktop"
+        return "\(appName) - \(displayName(for: frame.reason))"
+    }
+
+    private func displayName(for reason: CaptureReason) -> String {
+        switch reason {
+        case .appChanged:
+            "App changed"
+        case .fallbackInterval:
+            "Progress checkpoint"
+        case .manual:
+            "Session started"
+        case .sessionStarted:
+            "Session started"
+        case .userActivity:
+            "Active work"
+        }
+    }
+
+    private func drawCaption(_ caption: String, in context: CGContext, canvas: CGRect) {
+        let inset: CGFloat = 32
+        let barHeight: CGFloat = 72
+        let barRect = CGRect(
+            x: inset,
+            y: inset,
+            width: canvas.width - inset * 2,
+            height: barHeight
+        )
+
+        context.setFillColor(NSColor.black.withAlphaComponent(0.72).cgColor)
+        context.fill(barRect)
+
+        let textRect = barRect.insetBy(dx: 22, dy: 18)
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byTruncatingTail
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 24, weight: .semibold),
+            .foregroundColor: NSColor.white,
+            .paragraphStyle: paragraph
+        ]
+
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
+        NSString(string: caption).draw(in: textRect, withAttributes: attributes)
+        NSGraphicsContext.restoreGraphicsState()
     }
 
     private func fittedRect(for image: CGImage, in canvas: CGRect) -> CGRect {
