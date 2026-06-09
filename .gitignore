@@ -1,6 +1,9 @@
 .build/
 .swiftpm/
 DerivedData/
+web/.next/
+web/node_modules/
+web/tsconfig.tsbuildinfo
 *.xcuserdata/
 *.xcodeproj/project.xcworkspace/xcuserdata/
 *.DS_Store
