@@ -39,6 +39,8 @@ In the app window:
 
 If macOS does not show a permission prompt, open System Settings → Privacy & Security → Screen & System Audio Recording, enable the terminal/Codex app used to launch Recapped, then quit and restart the app.
 
+If Terminal says `Build of product 'Recapped' complete!` but no window appears, stop the process with `Control-C`, pull the latest code, and run the script again. The current app uses an explicit AppKit foreground window launcher.
+
 ## Current Upload State
 
 The website has Google sign-in, Supabase Storage upload, the global wall, and profile walls. The native macOS app currently captures and renders the recap video locally. Native automatic upload to Supabase is the next integration step.

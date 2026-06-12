@@ -1,15 +1,45 @@
+import AppKit
 import SwiftUI
 import RecappedAI
 import RecappedCapture
 import RecappedCore
 
 @main
-struct RecappedApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .frame(minWidth: 720, minHeight: 520)
-        }
+enum RecappedMain {
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = RecappedAppDelegate()
+        app.delegate = delegate
+        app.setActivationPolicy(.regular)
+        app.run()
+        _ = delegate
+    }
+}
+
+final class RecappedAppDelegate: NSObject, NSApplicationDelegate {
+    private var window: NSWindow?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        let contentView = ContentView()
+            .frame(minWidth: 720, minHeight: 520)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Recapped"
+        window.center()
+        window.contentView = NSHostingView(rootView: contentView)
+        window.makeKeyAndOrderFront(nil)
+
+        self.window = window
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        true
     }
 }
 
