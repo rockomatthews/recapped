@@ -23,3 +23,17 @@ swift run Recapped
 The app uses a package-first SwiftPM layout so the core logic can be tested without opening Xcode.
 
 On first run, macOS must grant screen recording permission before Recapped can capture screenshots.
+
+## Start Capturing
+
+```bash
+./scripts/run-recapped.sh
+```
+
+Click `Start` in the app window, approve Screen Recording permission, then click `Stop` when you want Recapped to render the 60-second montage. Local session output is written under:
+
+```text
+~/Library/Application Support/Recapped/Sessions/<session-id>/
+```
+
+The web app lives in `web/`. On Vercel, set the project Root Directory to `web`; otherwise Vercel can deploy the wrong folder and show `404: NOT_FOUND`.

@@ -16,6 +16,17 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 
 5. Add the same env vars in Vercel.
 
+## Vercel
+
+This app is in the `web/` subdirectory. In Vercel Project Settings, set:
+
+- Framework Preset: `Next.js`
+- Root Directory: `web`
+- Build Command: `npm run build`
+- Install Command: `npm install`
+
+If the Root Directory is left as the repo root, the production domain can show `404: NOT_FOUND` because Vercel is not deploying the Next app.
+
 ## Run
 
 ```bash
