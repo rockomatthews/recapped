@@ -36,4 +36,16 @@ Click `Start` in the app window, approve Screen Recording permission, then click
 ~/Library/Application Support/Recapped/Sessions/<session-id>/
 ```
 
+To rerender the latest saved session after changing the selection algorithm:
+
+```bash
+./scripts/rerender-latest.sh
+```
+
+Or pass a specific session folder:
+
+```bash
+./scripts/rerender-latest.sh "$HOME/Library/Application Support/Recapped/Sessions/<session-id>"
+```
+
 The web app lives in `web/`. On Vercel, set the project Root Directory to `web`; otherwise Vercel can deploy the wrong folder and show `404: NOT_FOUND`.

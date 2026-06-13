@@ -3,18 +3,24 @@ import RecappedCore
 
 public final class LocalAIRecapProvider: AIRecapProvider, @unchecked Sendable {
     private let renderer: SlideshowVideoRenderer
+    private let selector: RecapFrameSelector
     private let targetDuration: TimeInterval
 
     public init(
         renderer: SlideshowVideoRenderer = SlideshowVideoRenderer(),
+        selector: RecapFrameSelector = RecapFrameSelector(),
         targetDuration: TimeInterval = 60
     ) {
         self.renderer = renderer
+        self.selector = selector
         self.targetDuration = targetDuration
     }
 
     public func generateRecap(for session: CapturedSession, outputURL: URL) async throws -> RecapResult {
-        let selectedFrames = selectFrames(from: session.frames, limit: 24)
+        let selectedFrames = selector.selectFrames(
+            from: session.frames,
+            targetCount: Int(targetDuration.rounded())
+        )
         try await renderer.render(
             frames: selectedFrames,
             outputURL: outputURL,
@@ -27,33 +33,6 @@ public final class LocalAIRecapProvider: AIRecapProvider, @unchecked Sendable {
             summary: makeSummary(for: session, selectedFrames: selectedFrames),
             durationSeconds: targetDuration
         )
-    }
-
-    private func selectFrames(from frames: [CaptureFrame], limit: Int) -> [CaptureFrame] {
-        guard frames.count > limit else { return frames }
-
-        var selected: [CaptureFrame] = []
-        var seenApps = Set<String>()
-
-        for frame in frames where selected.count < limit {
-            let appName = frame.foregroundAppName ?? "Unknown"
-            if !seenApps.contains(appName) || frame.reason != .fallbackInterval {
-                selected.append(frame)
-                seenApps.insert(appName)
-            }
-        }
-
-        if selected.count < limit {
-            let stride = Double(frames.count) / Double(limit)
-            for index in 0..<limit where selected.count < limit {
-                let frame = frames[min(frames.count - 1, Int(Double(index) * stride))]
-                if !selected.contains(where: { $0.id == frame.id }) {
-                    selected.append(frame)
-                }
-            }
-        }
-
-        return selected.sorted { $0.capturedAt < $1.capturedAt }
     }
 
     private func makeSummary(for session: CapturedSession, selectedFrames: [CaptureFrame]) -> String {

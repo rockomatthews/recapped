@@ -9,6 +9,7 @@ let package = Package(
     ],
     products: [
         .executable(name: "Recapped", targets: ["RecappedApp"]),
+        .executable(name: "RecappedRerender", targets: ["RecappedRerender"]),
         .library(name: "RecappedCore", targets: ["RecappedCore"]),
         .library(name: "RecappedCapture", targets: ["RecappedCapture"]),
         .library(name: "RecappedAI", targets: ["RecappedAI"])
@@ -25,6 +26,14 @@ let package = Package(
         ),
         .executableTarget(
             name: "RecappedApp",
+            dependencies: [
+                "RecappedCore",
+                "RecappedCapture",
+                "RecappedAI"
+            ]
+        ),
+        .executableTarget(
+            name: "RecappedRerender",
             dependencies: [
                 "RecappedCore",
                 "RecappedCapture",

@@ -36,7 +36,10 @@ export default async function HomePage() {
         <section className="main-column">
           <div className="section-header">
             <div>
-              <h1>Watch what people actually accomplished.</h1>
+              <h1 className="home-title">
+                Watch what people actually accomplished. FUCK RESUMES and the job
+                application process
+              </h1>
               <p>
                 A live wall of one-minute desktop recap videos generated from automatic
                 Recapped sessions.

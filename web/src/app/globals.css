@@ -131,6 +131,12 @@ select {
   max-width: 820px;
 }
 
+.section-header h1.home-title {
+  font-size: clamp(23px, 2.8vw, 34px);
+  line-height: 1.06;
+  max-width: 760px;
+}
+
 .section-header p,
 .profile-head p {
   color: var(--muted);
@@ -473,6 +479,10 @@ select {
   .section-header h1,
   .profile-head h1 {
     font-size: 38px;
+  }
+
+  .section-header h1.home-title {
+    font-size: 27px;
   }
 
   .video-grid {
