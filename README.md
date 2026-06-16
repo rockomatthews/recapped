@@ -52,17 +52,14 @@ The web app lives in `web/`. On Vercel, set the project Root Directory to `web`;
 
 ## Hands-Off Upload
 
-When these environment variables are present, clicking `Stop` renders the recap and automatically uploads it to Supabase:
+Clicking `Stop` renders the recap and automatically uploads it when the app is paired with the website:
 
-```bash
-export RECAPPED_SUPABASE_URL="https://<project-ref>.supabase.co"
-export RECAPPED_SUPABASE_PUBLISHABLE_KEY="<publishable-or-anon-key>"
-export RECAPPED_SUPABASE_ACCESS_TOKEN="<signed-in-user-access-token>"
-export RECAPPED_SUPABASE_USER_ID="<auth-user-uuid>"
-./scripts/run-recapped.sh
-```
+1. Sign in on the website.
+2. Open `/pair`.
+3. Create a pairing code.
+4. Paste the website URL and pairing code into the Mac app.
 
-No service role key or private key belongs in the app. The uploader uses the signed-in user's access token and the public bucket/RLS policies from the web migration.
+No Supabase key belongs in the native app. Vercel handles Supabase uploads server-side.
 
 ## Package the macOS App
 

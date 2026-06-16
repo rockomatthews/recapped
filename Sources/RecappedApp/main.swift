@@ -84,6 +84,15 @@ struct ContentView: View {
                 }
             }
 
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Website upload")
+                    .font(.headline)
+                TextField("Web URL", text: $model.webURLString)
+                    .textFieldStyle(.roundedBorder)
+                SecureField("Pairing code from /pair", text: $model.pairingCode)
+                    .textFieldStyle(.roundedBorder)
+            }
+
             if let result = model.lastResult {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Latest recap")
@@ -128,6 +137,8 @@ final class SessionViewModel: ObservableObject {
     @Published private(set) var permissionState = ScreenRecordingPermission.isGranted() ? "Granted" : "Needed"
     @Published private(set) var statusText = "Ready to capture a work session."
     @Published private(set) var lastResult: RecapResult?
+    @Published var webURLString = ProcessInfo.processInfo.environment["RECAPPED_WEB_URL"] ?? "https://recapped-three.vercel.app"
+    @Published var pairingCode = ProcessInfo.processInfo.environment["RECAPPED_PAIRING_CODE"] ?? ""
 
     let backendName = CaptureBackend.defaultBackend.rawValue
 
@@ -137,7 +148,6 @@ final class SessionViewModel: ObservableObject {
     private let capturer = CoreGraphicsScreenshotCapturer()
     private let activitySampler = MacActivitySampler()
     private let recapOrchestrator = RecapOrchestrator(provider: LocalAIRecapProvider())
-    private let uploaderConfig = SupabaseUploadConfig.fromEnvironment()
     private var store: SessionImageStore?
 
     func start() async {
@@ -161,7 +171,7 @@ final class SessionViewModel: ObservableObject {
             frameCount = 0
             lastResult = nil
             recapState = "Recording"
-            uploadState = uploaderConfig == nil ? "Not configured" : "Ready"
+            uploadState = uploadConfig() == nil ? "Not paired" : "Ready"
             statusText = "Recording automatically. Switch apps or keep working to create frames."
             isRecording = true
             scheduleCaptureTimer()
@@ -219,17 +229,17 @@ final class SessionViewModel: ObservableObject {
     }
 
     private func uploadIfConfigured(result: RecapResult, session: CapturedSession) async throws {
-        guard let uploaderConfig else {
+        guard let uploadConfig = uploadConfig() else {
             uploadState = "Skipped"
             recapState = "Done"
-            statusText = "Recap complete locally. Configure Supabase upload env vars for hands-off upload."
+            statusText = "Recap complete locally. Paste a website pairing code for hands-off upload."
             return
         }
 
         uploadState = "Uploading"
         statusText = "Uploading recap to Recapped."
 
-        let uploaded = try await SupabaseVideoUploader(config: uploaderConfig).upload(
+        let uploaded = try await SiteVideoUploader(config: uploadConfig).upload(
             videoURL: result.videoURL,
             title: "Recapped session \(session.startedAt.formatted(date: .abbreviated, time: .shortened))",
             description: result.summary,
@@ -239,6 +249,17 @@ final class SessionViewModel: ObservableObject {
         uploadState = "Uploaded"
         recapState = "Done"
         statusText = "Recap complete and uploaded: \(uploaded.playbackURL.absoluteString)"
+    }
+
+    private func uploadConfig() -> SiteUploadConfig? {
+        guard
+            let webBaseURL = URL(string: webURLString),
+            !pairingCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            return nil
+        }
+
+        return SiteUploadConfig(webBaseURL: webBaseURL, pairingCode: pairingCode)
     }
 
     private func scheduleCaptureTimer() {

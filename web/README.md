@@ -54,6 +54,16 @@ Then insert a row into `public.videos` with:
 
 The web upload page follows the same flow, so it can be used as the reference implementation for the native app.
 
+## Desktop Pairing
+
+The desktop app uploads through Vercel, not directly to Supabase.
+
+- `/pair` creates a pairing code for the signed-in user.
+- `/api/desktop/upload` accepts a paired desktop upload.
+- Vercel uses `SUPABASE_SERVICE_ROLE_KEY` server-side to upload the video and insert the `videos` row.
+
+Never put `SUPABASE_SERVICE_ROLE_KEY` in the native app.
+
 ## Download Page
 
 The app download route is `/download`. It currently points at GitHub Releases:

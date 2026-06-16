@@ -33,7 +33,7 @@ export default function DownloadPage() {
           <div className="panel download-card">
             <Download size={22} />
             <h2>Automatic upload</h2>
-            <p>After Stop, Recapped renders and uploads automatically when Supabase user credentials are configured.</p>
+            <p>After Stop, Recapped renders and uploads automatically once paired with your website account.</p>
           </div>
         </section>
       </main>

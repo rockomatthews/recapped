@@ -21,6 +21,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           {user ? <Link href={`/profile/${user.id}`}>My Profile</Link> : null}
           <Link href="/upload">Upload</Link>
           <Link href="/download">Download</Link>
+          <Link href="/pair">Pair App</Link>
         </nav>
 
         <div className="topbar-spacer" />

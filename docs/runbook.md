@@ -43,13 +43,13 @@ If Terminal says `Build of product 'Recapped' complete!` but no window appears, 
 
 ## Current Upload State
 
-The website has Google sign-in, Supabase Storage upload, the global wall, profile walls, and a Download page. The native macOS app captures, filters, renders, and then uploads after `Stop` when user-scoped Supabase env vars are configured:
+The website has Google sign-in, Supabase Storage upload, the global wall, profile walls, a Download page, and a Pair App page. The native macOS app captures, filters, renders, and uploads after `Stop` when paired with the website.
 
-```bash
-RECAPPED_SUPABASE_URL
-RECAPPED_SUPABASE_PUBLISHABLE_KEY
-RECAPPED_SUPABASE_ACCESS_TOKEN
-RECAPPED_SUPABASE_USER_ID
-```
+Pairing flow:
 
-Do not use a service role key in the native app.
+1. Sign in on the site.
+2. Open `/pair`.
+3. Create a pairing code.
+4. Paste the website URL and pairing code into Recapped for macOS.
+
+Do not use a service role key or Supabase key in the native app. Vercel handles Supabase uploads server-side.
