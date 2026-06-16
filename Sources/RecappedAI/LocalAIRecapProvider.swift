@@ -4,22 +4,27 @@ import RecappedCore
 public final class LocalAIRecapProvider: AIRecapProvider, @unchecked Sendable {
     private let renderer: SlideshowVideoRenderer
     private let selector: RecapFrameSelector
+    private let evaluator: SnapEvaluator
     private let targetDuration: TimeInterval
 
     public init(
         renderer: SlideshowVideoRenderer = SlideshowVideoRenderer(),
         selector: RecapFrameSelector = RecapFrameSelector(),
+        evaluator: SnapEvaluator = SnapEvaluator(),
         targetDuration: TimeInterval = 60
     ) {
         self.renderer = renderer
         self.selector = selector
+        self.evaluator = evaluator
         self.targetDuration = targetDuration
     }
 
     public func generateRecap(for session: CapturedSession, outputURL: URL) async throws -> RecapResult {
+        let evaluations = await evaluator.evaluate(frames: session.frames)
         let selectedFrames = selector.selectFrames(
             from: session.frames,
-            targetCount: Int(targetDuration.rounded())
+            targetCount: Int(targetDuration.rounded()),
+            evaluations: evaluations
         )
         try await renderer.render(
             frames: selectedFrames,

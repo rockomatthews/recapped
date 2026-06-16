@@ -3,6 +3,7 @@ import SwiftUI
 import RecappedAI
 import RecappedCapture
 import RecappedCore
+import RecappedUpload
 
 @main
 enum RecappedMain {
@@ -79,6 +80,7 @@ struct ContentView: View {
                     metric("Backend", value: model.backendName)
                     metric("Permission", value: model.permissionState)
                     metric("Recap", value: model.recapState)
+                    metric("Upload", value: model.uploadState)
                 }
             }
 
@@ -122,6 +124,7 @@ final class SessionViewModel: ObservableObject {
     @Published private(set) var frameCount = 0
     @Published private(set) var isRecording = false
     @Published private(set) var recapState = "Idle"
+    @Published private(set) var uploadState = "Not configured"
     @Published private(set) var permissionState = ScreenRecordingPermission.isGranted() ? "Granted" : "Needed"
     @Published private(set) var statusText = "Ready to capture a work session."
     @Published private(set) var lastResult: RecapResult?
@@ -134,6 +137,7 @@ final class SessionViewModel: ObservableObject {
     private let capturer = CoreGraphicsScreenshotCapturer()
     private let activitySampler = MacActivitySampler()
     private let recapOrchestrator = RecapOrchestrator(provider: LocalAIRecapProvider())
+    private let uploaderConfig = SupabaseUploadConfig.fromEnvironment()
     private var store: SessionImageStore?
 
     func start() async {
@@ -157,6 +161,7 @@ final class SessionViewModel: ObservableObject {
             frameCount = 0
             lastResult = nil
             recapState = "Recording"
+            uploadState = uploaderConfig == nil ? "Not configured" : "Ready"
             statusText = "Recording automatically. Switch apps or keep working to create frames."
             isRecording = true
             scheduleCaptureTimer()
@@ -205,12 +210,35 @@ final class SessionViewModel: ObservableObject {
                 outputURL: outputURL
             )
             lastResult = result
-            recapState = "Done"
-            statusText = "Recap complete."
+            recapState = "Rendered"
+            try await uploadIfConfigured(result: result, session: capturedSession)
         } catch {
             recapState = "Failed"
             statusText = "Recap failed: \(error.localizedDescription)"
         }
+    }
+
+    private func uploadIfConfigured(result: RecapResult, session: CapturedSession) async throws {
+        guard let uploaderConfig else {
+            uploadState = "Skipped"
+            recapState = "Done"
+            statusText = "Recap complete locally. Configure Supabase upload env vars for hands-off upload."
+            return
+        }
+
+        uploadState = "Uploading"
+        statusText = "Uploading recap to Recapped."
+
+        let uploaded = try await SupabaseVideoUploader(config: uploaderConfig).upload(
+            videoURL: result.videoURL,
+            title: "Recapped session \(session.startedAt.formatted(date: .abbreviated, time: .shortened))",
+            description: result.summary,
+            durationSeconds: Int(result.durationSeconds.rounded())
+        )
+
+        uploadState = "Uploaded"
+        recapState = "Done"
+        statusText = "Recap complete and uploaded: \(uploaded.playbackURL.absoluteString)"
     }
 
     private func scheduleCaptureTimer() {

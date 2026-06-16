@@ -49,3 +49,29 @@ Or pass a specific session folder:
 ```
 
 The web app lives in `web/`. On Vercel, set the project Root Directory to `web`; otherwise Vercel can deploy the wrong folder and show `404: NOT_FOUND`.
+
+## Hands-Off Upload
+
+When these environment variables are present, clicking `Stop` renders the recap and automatically uploads it to Supabase:
+
+```bash
+export RECAPPED_SUPABASE_URL="https://<project-ref>.supabase.co"
+export RECAPPED_SUPABASE_PUBLISHABLE_KEY="<publishable-or-anon-key>"
+export RECAPPED_SUPABASE_ACCESS_TOKEN="<signed-in-user-access-token>"
+export RECAPPED_SUPABASE_USER_ID="<auth-user-uuid>"
+./scripts/run-recapped.sh
+```
+
+No service role key or private key belongs in the app. The uploader uses the signed-in user's access token and the public bucket/RLS policies from the web migration.
+
+## Package the macOS App
+
+```bash
+./scripts/package-mac-app.sh
+```
+
+This writes:
+
+```text
+dist/Recapped-macOS.zip
+```

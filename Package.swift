@@ -12,7 +12,8 @@ let package = Package(
         .executable(name: "RecappedRerender", targets: ["RecappedRerender"]),
         .library(name: "RecappedCore", targets: ["RecappedCore"]),
         .library(name: "RecappedCapture", targets: ["RecappedCapture"]),
-        .library(name: "RecappedAI", targets: ["RecappedAI"])
+        .library(name: "RecappedAI", targets: ["RecappedAI"]),
+        .library(name: "RecappedUpload", targets: ["RecappedUpload"])
     ],
     targets: [
         .target(name: "RecappedCore"),
@@ -24,12 +25,17 @@ let package = Package(
             name: "RecappedAI",
             dependencies: ["RecappedCore"]
         ),
+        .target(
+            name: "RecappedUpload",
+            dependencies: ["RecappedCore"]
+        ),
         .executableTarget(
             name: "RecappedApp",
             dependencies: [
                 "RecappedCore",
                 "RecappedCapture",
-                "RecappedAI"
+                "RecappedAI",
+                "RecappedUpload"
             ]
         ),
         .executableTarget(

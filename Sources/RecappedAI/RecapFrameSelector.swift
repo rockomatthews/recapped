@@ -6,9 +6,12 @@ public struct RecapFrameSelector: Sendable {
 
     public func selectFrames(
         from frames: [CaptureFrame],
-        targetCount: Int = 60
+        targetCount: Int = 60,
+        evaluations: [UUID: SnapEvaluation] = [:]
     ) -> [CaptureFrame] {
-        let sortedFrames = frames.sorted { $0.capturedAt < $1.capturedAt }
+        let sortedFrames = frames
+            .filter { evaluations[$0.id]?.containsSensitiveText != true }
+            .sorted { $0.capturedAt < $1.capturedAt }
         guard targetCount > 0, sortedFrames.count > targetCount else {
             return sortedFrames
         }
@@ -22,7 +25,8 @@ public struct RecapFrameSelector: Sendable {
                     frame: frame,
                     index: index,
                     sortedFrames: sortedFrames,
-                    appCounts: appCounts
+                    appCounts: appCounts,
+                    evaluation: evaluations[frame.id]
                 )
             )
         }
@@ -80,12 +84,14 @@ public struct RecapFrameSelector: Sendable {
         frame: CaptureFrame,
         index: Int,
         sortedFrames: [CaptureFrame],
-        appCounts: [String: Int]
+        appCounts: [String: Int],
+        evaluation: SnapEvaluation?
     ) -> Double {
         var score = reasonScore(frame.reason)
         let appName = frame.foregroundAppName ?? "Unknown"
         let appCount = max(1, appCounts[appName] ?? 1)
 
+        score += evaluation?.qualityScore ?? 0
         score += min(3, log(Double(sortedFrames.count) / Double(appCount) + 1))
 
         if index > 0 {

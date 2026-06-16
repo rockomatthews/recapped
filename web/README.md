@@ -53,3 +53,13 @@ Then insert a row into `public.videos` with:
 - `visibility = public`
 
 The web upload page follows the same flow, so it can be used as the reference implementation for the native app.
+
+## Download Page
+
+The app download route is `/download`. It currently points at GitHub Releases:
+
+```text
+https://github.com/rockomatthews/recapped/releases/latest
+```
+
+Use `../scripts/package-mac-app.sh` from the repo root to create `dist/Recapped-macOS.zip` for a release asset.

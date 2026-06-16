@@ -359,7 +359,8 @@ select {
 }
 
 .profile-page,
-.upload-page {
+.upload-page,
+.download-page {
   padding: 32px;
 }
 
@@ -389,6 +390,63 @@ select {
   display: grid;
   gap: 24px;
   grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.download-page {
+  display: grid;
+  gap: 24px;
+}
+
+.download-hero {
+  align-items: center;
+  background: linear-gradient(135deg, rgba(155, 255, 104, 0.13), rgba(98, 215, 255, 0.07));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  display: flex;
+  min-height: 360px;
+  padding: 48px;
+}
+
+.download-hero h1 {
+  font-size: clamp(36px, 6vw, 76px);
+  line-height: 0.94;
+  margin: 0;
+  max-width: 820px;
+}
+
+.download-hero p {
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.5;
+  margin: 18px 0 28px;
+  max-width: 680px;
+}
+
+.download-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.download-card {
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+}
+
+.download-card svg {
+  color: var(--accent);
+}
+
+.download-card h2 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.download-card p {
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
 }
 
 .upload-panel {
@@ -453,6 +511,10 @@ select {
   .video-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .download-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -467,7 +529,8 @@ select {
 
   .page,
   .profile-page,
-  .upload-page {
+  .upload-page,
+  .download-page {
     padding: 18px 16px 32px;
   }
 
@@ -492,5 +555,9 @@ select {
   .profile-head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .download-hero {
+    padding: 28px;
   }
 }

@@ -43,4 +43,13 @@ If Terminal says `Build of product 'Recapped' complete!` but no window appears, 
 
 ## Current Upload State
 
-The website has Google sign-in, Supabase Storage upload, the global wall, and profile walls. The native macOS app currently captures and renders the recap video locally. Native automatic upload to Supabase is the next integration step.
+The website has Google sign-in, Supabase Storage upload, the global wall, profile walls, and a Download page. The native macOS app captures, filters, renders, and then uploads after `Stop` when user-scoped Supabase env vars are configured:
+
+```bash
+RECAPPED_SUPABASE_URL
+RECAPPED_SUPABASE_PUBLISHABLE_KEY
+RECAPPED_SUPABASE_ACCESS_TOKEN
+RECAPPED_SUPABASE_USER_ID
+```
+
+Do not use a service role key in the native app.

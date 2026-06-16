@@ -44,4 +44,46 @@ struct RecapFrameSelectorTests {
 
         #expect(selected == selected.sorted { $0.capturedAt < $1.capturedAt })
     }
+
+    @Test
+    func excludesFramesMarkedSensitive() {
+        let selector = RecapFrameSelector()
+        let start = Date(timeIntervalSince1970: 3_000)
+        let sensitiveFrame = CaptureFrame(
+            capturedAt: start,
+            reason: .appChanged,
+            fileURL: URL(filePath: "/tmp/sensitive.png"),
+            foregroundAppName: "Terminal"
+        )
+        let safeFrame = CaptureFrame(
+            capturedAt: start.addingTimeInterval(1),
+            reason: .fallbackInterval,
+            fileURL: URL(filePath: "/tmp/safe.png"),
+            foregroundAppName: "Xcode"
+        )
+        let evaluations = [
+            sensitiveFrame.id: SnapEvaluation(
+                frameID: sensitiveFrame.id,
+                qualityScore: 99,
+                containsSensitiveText: true,
+                reasons: ["private key detected"]
+            )
+        ]
+
+        let selected = selector.selectFrames(
+            from: [sensitiveFrame, safeFrame],
+            targetCount: 2,
+            evaluations: evaluations
+        )
+
+        #expect(selected == [safeFrame])
+    }
+
+    @Test
+    func secretDetectorFlagsPrivateKeyMaterial() {
+        let detector = SecretDetector()
+        let matches = detector.matches(in: "-----BEGIN PRIVATE KEY-----\nabc123\n-----END PRIVATE KEY-----")
+
+        #expect(matches.contains("private key detected"))
+    }
 }
