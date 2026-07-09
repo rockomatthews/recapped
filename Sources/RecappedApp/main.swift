@@ -91,6 +91,16 @@ struct ContentView: View {
                     .textFieldStyle(.roundedBorder)
                 SecureField("Pairing code from /pair", text: $model.pairingCode)
                     .textFieldStyle(.roundedBorder)
+                HStack {
+                    Button(model.uploadLatestButtonTitle) {
+                        Task { await model.uploadLatest() }
+                    }
+                    .disabled(!model.canUploadLatest)
+
+                    Text("Pair once. Future recordings upload automatically after Stop.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             if let result = model.lastResult {
@@ -137,10 +147,29 @@ final class SessionViewModel: ObservableObject {
     @Published private(set) var permissionState = ScreenRecordingPermission.isGranted() ? "Granted" : "Needed"
     @Published private(set) var statusText = "Ready to capture a work session."
     @Published private(set) var lastResult: RecapResult?
-    @Published var webURLString = ProcessInfo.processInfo.environment["RECAPPED_WEB_URL"] ?? "https://recapped-three.vercel.app"
-    @Published var pairingCode = ProcessInfo.processInfo.environment["RECAPPED_PAIRING_CODE"] ?? ""
+    @Published var webURLString = SessionViewModel.initialWebURL {
+        didSet {
+            UserDefaults.standard.set(webURLString, forKey: Self.webURLDefaultsKey)
+            refreshUploadReadiness()
+        }
+    }
+    @Published var pairingCode = SessionViewModel.initialPairingCode {
+        didSet {
+            UserDefaults.standard.set(pairingCode, forKey: Self.pairingCodeDefaultsKey)
+            refreshUploadReadiness()
+        }
+    }
 
     let backendName = CaptureBackend.defaultBackend.rawValue
+
+    private static let webURLDefaultsKey = "recapped.webURL"
+    private static let pairingCodeDefaultsKey = "recapped.pairingCode"
+    private static let initialWebURL = ProcessInfo.processInfo.environment["RECAPPED_WEB_URL"]
+        ?? UserDefaults.standard.string(forKey: webURLDefaultsKey)
+        ?? "https://recapped-three.vercel.app"
+    private static let initialPairingCode = ProcessInfo.processInfo.environment["RECAPPED_PAIRING_CODE"]
+        ?? UserDefaults.standard.string(forKey: pairingCodeDefaultsKey)
+        ?? ""
 
     private var state = CaptureSessionState()
     private var decider = AutomaticCaptureDecider()
@@ -149,6 +178,23 @@ final class SessionViewModel: ObservableObject {
     private let activitySampler = MacActivitySampler()
     private let recapOrchestrator = RecapOrchestrator(provider: LocalAIRecapProvider())
     private var store: SessionImageStore?
+    private var lastCapturedSession: CapturedSession?
+
+    var canUploadLatest: Bool {
+        lastResult != nil && uploadConfig() != nil && uploadState != "Uploading" && uploadState != "Uploaded"
+    }
+
+    var uploadLatestButtonTitle: String {
+        if uploadState == "Uploading" {
+            return "Uploading..."
+        }
+
+        if uploadConfig() == nil {
+            return "Paste pairing code to upload latest recap"
+        }
+
+        return "Upload latest recap"
+    }
 
     func start() async {
         guard !isRecording else { return }
@@ -170,6 +216,7 @@ final class SessionViewModel: ObservableObject {
             decider.reset()
             frameCount = 0
             lastResult = nil
+            lastCapturedSession = nil
             recapState = "Recording"
             uploadState = uploadConfig() == nil ? "Not paired" : "Ready"
             statusText = "Recording automatically. Switch apps or keep working to create frames."
@@ -220,11 +267,37 @@ final class SessionViewModel: ObservableObject {
                 outputURL: outputURL
             )
             lastResult = result
+            lastCapturedSession = capturedSession
             recapState = "Rendered"
-            try await uploadIfConfigured(result: result, session: capturedSession)
         } catch {
             recapState = "Failed"
             statusText = "Recap failed: \(error.localizedDescription)"
+            return
+        }
+
+        do {
+            if let lastResult, let lastCapturedSession {
+                try await uploadIfConfigured(result: lastResult, session: lastCapturedSession)
+            }
+        } catch {
+            recapState = "Rendered"
+            uploadState = "Failed"
+            statusText = "Recap rendered locally, but upload failed: \(error.localizedDescription)"
+        }
+    }
+
+    func uploadLatest() async {
+        guard let lastResult, let lastCapturedSession else {
+            statusText = "No rendered recap is ready to upload yet."
+            return
+        }
+
+        do {
+            try await uploadIfConfigured(result: lastResult, session: lastCapturedSession)
+        } catch {
+            recapState = "Rendered"
+            uploadState = "Failed"
+            statusText = "Recap rendered locally, but upload failed: \(error.localizedDescription)"
         }
     }
 
@@ -260,6 +333,11 @@ final class SessionViewModel: ObservableObject {
         }
 
         return SiteUploadConfig(webBaseURL: webBaseURL, pairingCode: pairingCode)
+    }
+
+    private func refreshUploadReadiness() {
+        guard !isRecording, uploadState != "Uploading", uploadState != "Uploaded" else { return }
+        uploadState = uploadConfig() == nil ? "Not paired" : "Ready"
     }
 
     private func scheduleCaptureTimer() {

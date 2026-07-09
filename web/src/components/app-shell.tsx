@@ -19,9 +19,9 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="nav" aria-label="Primary">
           <Link href="/">Global Wall</Link>
           {user ? <Link href={`/profile/${user.id}`}>My Profile</Link> : null}
-          <Link href="/upload">Upload</Link>
-          <Link href="/download">Download</Link>
           <Link href="/pair">Pair App</Link>
+          <Link href="/download">Download</Link>
+          <Link href="/upload">Manual Upload</Link>
         </nav>
 
         <div className="topbar-spacer" />
@@ -29,7 +29,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
         {user ? (
           <Link className="button secondary" href="/upload">
             <Upload size={16} />
-            Upload recap
+            Manual upload
           </Link>
         ) : null}
         <AuthButton userEmail={user?.email ?? null} />

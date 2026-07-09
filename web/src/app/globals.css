@@ -528,6 +528,17 @@ select {
   padding: 14px;
 }
 
+.upload-notice {
+  display: grid;
+  gap: 10px;
+}
+
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .error {
   color: var(--danger);
 }
