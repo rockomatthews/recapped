@@ -103,6 +103,22 @@ select {
   flex: 1;
 }
 
+.auth-control {
+  align-items: flex-end;
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+
+.auth-error {
+  color: #ffb0b0;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.25;
+  max-width: 340px;
+  text-align: right;
+}
+
 .page {
   display: grid;
   gap: 24px;

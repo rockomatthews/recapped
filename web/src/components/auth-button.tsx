@@ -1,23 +1,45 @@
 "use client";
 
+import { useState } from "react";
 import { LogIn, LogOut } from "lucide-react";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 
 export function AuthButton({ userEmail }: { userEmail: string | null }) {
+  const [status, setStatus] = useState<string | null>(null);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+
   async function signIn() {
+    setIsSigningIn(true);
+    setStatus(null);
+
     const supabase = getBrowserSupabase();
 
     if (!supabase) {
-      alert("Supabase env vars are missing.");
+      setStatus("Supabase env vars are missing.");
+      setIsSigningIn(false);
       return;
     }
 
-    await supabase.auth.signInWithOAuth({
+    const providerResponse = await fetch("/api/auth/provider-status?provider=google");
+    const providerStatus = await providerResponse.json().catch(() => null);
+
+    if (!providerResponse.ok || !providerStatus?.enabled) {
+      setStatus(providerStatus?.message ?? "Google sign-in is not ready yet.");
+      setIsSigningIn(false);
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
+
+    if (error) {
+      setStatus(error.message);
+      setIsSigningIn(false);
+    }
   }
 
   async function signOut() {
@@ -36,9 +58,12 @@ export function AuthButton({ userEmail }: { userEmail: string | null }) {
   }
 
   return (
-    <button className="button" onClick={signIn} type="button">
-      <LogIn size={16} />
-      Sign in with Google
-    </button>
+    <div className="auth-control">
+      <button className="button" disabled={isSigningIn} onClick={signIn} type="button">
+        <LogIn size={16} />
+        {isSigningIn ? "Checking sign-in..." : "Sign in with Google"}
+      </button>
+      {status ? <span className="auth-error">{status}</span> : null}
+    </div>
   );
 }
