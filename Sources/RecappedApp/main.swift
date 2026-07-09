@@ -65,12 +65,17 @@ struct ContentView: View {
                     }
                     .keyboardShortcut(.return, modifiers: [.command])
                     .buttonStyle(.borderedProminent)
+                } else if model.isProcessing {
+                    Button("Working...") {}
+                        .disabled(true)
+                        .buttonStyle(.borderedProminent)
                 } else {
-                    Button("Start") {
+                    Button(model.primaryActionTitle) {
                         Task { await model.start() }
                     }
                     .keyboardShortcut(.return, modifiers: [.command])
                     .buttonStyle(.borderedProminent)
+                    .disabled(!model.canStartRecording)
                 }
             }
 
@@ -92,12 +97,13 @@ struct ContentView: View {
                 SecureField("Pairing code from /pair", text: $model.pairingCode)
                     .textFieldStyle(.roundedBorder)
                 HStack {
-                    Button(model.uploadLatestButtonTitle) {
-                        Task { await model.uploadLatest() }
+                    if model.canRetryLatestUpload {
+                        Button("Retry latest upload") {
+                            Task { await model.uploadLatest() }
+                        }
                     }
-                    .disabled(!model.canUploadLatest)
 
-                    Text("Pair once. Future recordings upload automatically after Stop.")
+                    Text(model.uploadHelpText)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -142,10 +148,11 @@ struct ContentView: View {
 final class SessionViewModel: ObservableObject {
     @Published private(set) var frameCount = 0
     @Published private(set) var isRecording = false
+    @Published private(set) var isProcessing = false
     @Published private(set) var recapState = "Idle"
     @Published private(set) var uploadState = "Not configured"
     @Published private(set) var permissionState = ScreenRecordingPermission.isGranted() ? "Granted" : "Needed"
-    @Published private(set) var statusText = "Ready to capture a work session."
+    @Published private(set) var statusText = "Pair Recapped before recording so Stop can upload automatically."
     @Published private(set) var lastResult: RecapResult?
     @Published var webURLString = SessionViewModel.initialWebURL {
         didSet {
@@ -180,24 +187,44 @@ final class SessionViewModel: ObservableObject {
     private var store: SessionImageStore?
     private var lastCapturedSession: CapturedSession?
 
-    var canUploadLatest: Bool {
+    init() {
+        refreshUploadReadiness()
+        if uploadConfig() != nil {
+            statusText = "Ready. Stop will render and upload automatically."
+        }
+    }
+
+    var canStartRecording: Bool {
+        uploadConfig() != nil && !isProcessing
+    }
+
+    var primaryActionTitle: String {
+        uploadConfig() == nil ? "Pair before Start" : "Start"
+    }
+
+    var canRetryLatestUpload: Bool {
         lastResult != nil && uploadConfig() != nil && uploadState != "Uploading" && uploadState != "Uploaded"
     }
 
-    var uploadLatestButtonTitle: String {
-        if uploadState == "Uploading" {
-            return "Uploading..."
-        }
-
+    var uploadHelpText: String {
         if uploadConfig() == nil {
-            return "Paste pairing code to upload latest recap"
+            return "Paste a Pair App code before recording. Then Stop renders and uploads automatically."
         }
 
-        return "Upload latest recap"
+        if uploadState == "Uploaded" {
+            return "Automatic upload complete."
+        }
+
+        return "Paired. Stop will render and upload automatically."
     }
 
     func start() async {
         guard !isRecording else { return }
+        guard uploadConfig() != nil else {
+            uploadState = "Not paired"
+            statusText = "Paste a Pair App code before recording. Automatic upload starts after Stop."
+            return
+        }
 
         do {
             if !ScreenRecordingPermission.isGranted() {
@@ -218,8 +245,8 @@ final class SessionViewModel: ObservableObject {
             lastResult = nil
             lastCapturedSession = nil
             recapState = "Recording"
-            uploadState = uploadConfig() == nil ? "Not paired" : "Ready"
-            statusText = "Recording automatically. Switch apps or keep working to create frames."
+            uploadState = "Will upload"
+            statusText = "Recording automatically. Stop will render and upload to Recapped."
             isRecording = true
             scheduleCaptureTimer()
             await captureIfNeeded(forceReason: .manual)
@@ -234,8 +261,11 @@ final class SessionViewModel: ObservableObject {
         timer = nil
         state.stop(at: Date())
         isRecording = false
+        isProcessing = true
+        defer { isProcessing = false }
         recapState = "Rendering"
-        statusText = "Rendering a 60-second AI recap from \(state.frames.count) frame(s)."
+        uploadState = "Waiting"
+        statusText = "Rendering a 60-second AI recap from \(state.frames.count) frame(s). Upload starts next."
 
         guard
             let startedAt = state.startedAt,
@@ -269,6 +299,7 @@ final class SessionViewModel: ObservableObject {
             lastResult = result
             lastCapturedSession = capturedSession
             recapState = "Rendered"
+            statusText = "Recap rendered. Uploading automatically now."
         } catch {
             recapState = "Failed"
             statusText = "Recap failed: \(error.localizedDescription)"
@@ -303,10 +334,8 @@ final class SessionViewModel: ObservableObject {
 
     private func uploadIfConfigured(result: RecapResult, session: CapturedSession) async throws {
         guard let uploadConfig = uploadConfig() else {
-            uploadState = "Skipped"
-            recapState = "Done"
-            statusText = "Recap complete locally. Paste a website pairing code for hands-off upload."
-            return
+            uploadState = "Not paired"
+            throw UploadFlowError.notPaired
         }
 
         uploadState = "Uploading"
@@ -338,6 +367,10 @@ final class SessionViewModel: ObservableObject {
     private func refreshUploadReadiness() {
         guard !isRecording, uploadState != "Uploading", uploadState != "Uploaded" else { return }
         uploadState = uploadConfig() == nil ? "Not paired" : "Ready"
+
+        if uploadConfig() != nil, lastResult == nil, recapState == "Idle" {
+            statusText = "Ready. Stop will render and upload automatically."
+        }
     }
 
     private func scheduleCaptureTimer() {
@@ -381,5 +414,13 @@ final class SessionViewModel: ObservableObject {
         } catch {
             statusText = "Capture failed: \(error.localizedDescription)"
         }
+    }
+}
+
+private enum UploadFlowError: LocalizedError {
+    case notPaired
+
+    var errorDescription: String? {
+        "Recapped is not paired. Paste a Pair App code before recording so Stop can upload automatically."
     }
 }
